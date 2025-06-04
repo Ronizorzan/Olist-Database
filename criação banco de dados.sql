@@ -65,7 +65,7 @@ CSV HEADER;
 
 
 --Tabela Nº 5
--- Criação da Tabela de Produtos Chave Estrangeira -> 
+-- Criação da Tabela de Produtos
 CREATE TABLE Produtos (product_id TEXT PRIMARY KEY,
 	product_category_name TEXT,
 	product_name_lenght INT,
@@ -76,13 +76,13 @@ CREATE TABLE Produtos (product_id TEXT PRIMARY KEY,
 	product_height_cm INT,
 	product_width_cm INT	
 	);
-COPY Produtos FROM 'C:/temp/projeto olist/raw_dfs/olist_products_dataset.csv'
-delimiter ','
+COPY Produtos FROM 'C:/temp/projeto olist/cleaned_dfs/df_products_cleaned.csv'
+delimiter ','            --Tabela 'Produtos' foi tratada e adicionada à pasta 'cleaned_dfs'
 CSV HEADER;
 
 	
 --Tabela Nº 6
---Criação da Tabela de Pagamentos Chave Estrangeira -> Vendas(order_id)
+--Criação da Tabela de Pagamentos
 CREATE TABLE Pagamentos (order_id TEXT NOT NULL,
 	payment_sequential INT NOT NULL,
 	payment_installments INT,
@@ -97,7 +97,7 @@ CSV HEADER;
 
 
 --Tabela Nº 7
---Criação da Tabela de Reviews Chave Estrangeira(vendas[order_id])
+--Criação da Tabela de Reviews
 CREATE TABLE Reviews (review_id TEXT NOT NULL,
 	order_id TEXT PRIMARY KEY,
 	review_score INT,	  
@@ -113,7 +113,7 @@ CSV HEADER;
 
 	
 --Tabela Nº 8
---Criação da Tabela de Itens dos Pedidos Chave Estrangeira(vendas[order_id])
+--Criação da Tabela de Itens dos Pedidos
 CREATE TABLE ItensPedidos (order_id TEXT NOT NULL,
 	order_item_id INT NOT NULL,
 	product_id TEXT NOT NULL,
