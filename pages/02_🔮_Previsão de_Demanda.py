@@ -78,14 +78,14 @@ if processar:
         fig2 = plot_categories(df_previsoes_finais, 'quantidade_itens_vendidos')
         fig2.update_layout(yaxis_title="Demanda Prevista")        
         progresso.progress(100, "Previsões Geradas com Sucesso")
-        st.header(f"Demanda Prevista - {meses_prever} meses) ", divider="orange")
+        st.header(f"Demanda Prevista - {meses_prever} meses", divider="orange")
         st.plotly_chart(fig2, use_container_width=True)        
         st.markdown("<hr style='border:1px solid #0070f3'>", unsafe_allow_html=True)
 
         st.markdown(""":orange[***Otimização de Estoque:***] *As previsões sinalizam períodos de alta demanda, como o final do ano e Black Friday,
                     permitindo um planejamento de estoque proativo para maximizar vendas, ou identificar momentos de baixa para gerenciar excessos.*""")
         st.markdown(""":orange[***Eficiência Logística:***] *Com a visibilidade da demanda futura, é possível antecipar volumes, otimizar a capacidade 
-        de entrega e negociação com transportadoras, reduzindo custos de frete.*""")
+        de entrega e negociação com transportadoras, reduzindo custos de frete e armazenamento.*""")
         #st.dataframe(df_previsoes_finais)        
         
             
