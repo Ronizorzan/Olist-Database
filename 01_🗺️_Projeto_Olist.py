@@ -8,31 +8,43 @@ st.set_page_config("Análises Principais", layout="wide")
 
 
 #COnfiguração da barra lateral
-with st.sidebar:    
-    st.markdown(":orange[**Configuração das Análises**]")
-    try:
-        dados_completos = carregador_dados(consulta_sql) # Carregamento do DataFrame para as análises principais         
-        dados_geograficos = carregador_dados(consulta_sql2) # Carregamento do DataFrame para as análises geográficas
-        dados_receitas = carregador_dados(consulta_sql3) # Carregamento do DataFrame para as análises de receitas e fretes 
+try:
+    dados_completos = carregador_dados(consulta_sql) # Carregamento do DataFrame para as análises principais         
+    dados_geograficos = carregador_dados(consulta_sql2) # Carregamento do DataFrame para as análises geográficas
+    dados_receitas = carregador_dados(consulta_sql3) # Carregamento do DataFrame para as análises de receitas e fretes 
     
-        with st.expander("Selecionar o tipo de visualização", expanded=True):
-            visualizacao = st.radio("Selecione o tipo de análise", ["Desempenho Geral", "Metas e Variações", "Maiores Receitas vs Frete", 
-                                                        "Menores Receitas vs Frete", "Compras por Concentração"], help="Selecione o tipo de análise que gostaria de visualizar")
+    # Os dados não serão salvos recorrentemente para tornar a aplicação mais fluida
+    #dados_completos.to_csv("dados_completos.csv")
+    #dados_geograficos.to_csv("dados_geograficos.csv")
+    #dados_receitas.to_csv("dados_receitas.csv")
+
+# Carregamento dos DataFrame com os últimos dados obtidos caso ocorra algum erro no banco de dados
+except Exception as e:
+    st.warning(f"Falha na conecção com o banco de dados. Erro encontrado: {e}. Utilizando dados alternativos.")
+    dados_completos = pd.read_csv(consulta_sql) 
+    dados_geograficos = pd.read_csv(consulta_sql2) 
+    dados_receitas = pd.read_csv(consulta_sql3) 
+
+with st.sidebar:    
+    st.markdown(":orange[**Configuração das Análises**]")    
+    
+    with st.expander("Selecionar o tipo de visualização", expanded=True):
+        visualizacao = st.radio("Selecione o tipo de análise", ["Desempenho Geral", "Metas e Variações", "Maiores Receitas vs Frete", 
+                                                    "Menores Receitas vs Frete", "Compras por Concentração"], help="Selecione o tipo de análise que gostaria de visualizar")
+        
+    st.markdown(":orange[**Gostaria de personalizar as visualizações?**]", help="Selecione as configurações abaixo para a exibição de datas e metas", unsafe_allow_html=False)
+    with st.expander(":orange[Configurações adicionais]"):        
+        datas = st.date_input("Insira 1 ou 2 datas para filtrar nos gráficos", [], help="Escolha uma única data se quiser inserir apenas a data inicial,\
+                                \n ou duas se quiser filtrar data inicial e final, respectivamente.")
+        meta = st.number_input("Estipular meta", value=None, max_value=len(dados_completos)* 0.4e+3) 
             
-        st.markdown(":orange[**Gostaria de personalizar as visualizações?**]", help="Selecione as configurações abaixo para a exibição de datas e metas", unsafe_allow_html=False)
-        with st.expander(":orange[Configurações adicionais]"):        
-            datas = st.date_input("Insira 1 ou 2 datas para filtrar nos gráficos", [], help="Escolha uma única data se quiser inserir apenas a data inicial,\
-                                    \n ou duas se quiser filtrar data inicial e final, respectivamente.")
-            meta = st.number_input("Estipular meta", value=None, max_value=len(dados_completos)* 0.4e+3) 
-                
-        with st.expander(":orange[Conexão com banco de dados \
-                         \n(em desenvolvimento)]", expanded=False):
-            coluna_data = st.selectbox("Selecione a coluna de data", dados_completos.columns, index=0)    
-            coluna_id = st.selectbox("Selecione a coluna de identificação do cliente", dados_completos.columns, index=1)
-            coluna_categoria = st.selectbox("Selecione a coluna de categoria", dados_completos.columns, index=2)
-            coluna_valor = st.selectbox("Selecione a coluna de Valor", dados_completos.columns, index=3)           
-    except Exception as e:
-        st.error("Erro ao realizar a pesquisa. Por favor verifique a conexão com o banco de dados e tente novamente")
+    with st.expander(":orange[Conexão com banco de dados - Não alterar\
+                        \n(em desenvolvimento)]", expanded=False):
+        coluna_data = st.selectbox("Selecione a coluna de data", dados_completos.columns, index=0)    
+        coluna_id = st.selectbox("Selecione a coluna de identificação do cliente", dados_completos.columns, index=1)
+        coluna_categoria = st.selectbox("Selecione a coluna de categoria", dados_completos.columns, index=2)
+        coluna_valor = st.selectbox("Selecione a coluna de Valor", dados_completos.columns, index=3)           
+
 
     processar = st.button("Processar", use_container_width=True)
 
@@ -139,7 +151,8 @@ if processar:
                         podem indicar uma campanha bem-sucedida ou um aumento na demanda. Replicar ou otimizar essa estratégia pode gerar novos impulsos de vendas.*""")
             
             st.markdown(f""" *A retração de ***{np.abs(pior_porc[coluna_valor].iloc[0]):,.2f}%*** em ***{mapeamento_meses[pior_porc.index.month[0]]}*** de ***{pior_porc.index.year[0]}***
-                        sugere um impacto negativo, possivelmente devido a fatores externos ou mudanças no comportamento do consumidor. Avaliar as causas pode evitar quedas futuras.*""")
+                        sugere um impacto negativo, possivelmente devido a fatores externos ou mudanças no comportamento do consumidor.
+                        Avaliar causas e efeitos pode  ajustar soluções pode evitar quedas futuras.*""")
 
         with col2:
             st.header("Acompanhamento de Metas", divider='orange')
@@ -189,7 +202,7 @@ if processar:
             st.markdown(""":orange[***Ação:***] *Em um cenário onde a receita é baixa e os fretes caros incentivar o aumento do ticket médio
                         (com cross-selling, up-selling) para diluir o custo do frete por item pode ser uma boa alternativa para aumentar o engajamento dos clientes.
                         Buscar parceiros logísticos mais eficientes para essas rotas e oferecer cupons para compras maiores também são estratégias que podem impulsionar a lucratividade na região.*""")
-            st.markdown(""":orange[***Visão Macro(UF):***] Oferecem uma visão de alto nível do desempenho regional. É possível identificar rapidamente os estados que mais contribuem para a
+            st.markdown(""":orange[***Visão Macro (Análise atual):***] Oferecem uma visão de alto nível do desempenho regional. É possível identificar rapidamente os estados que mais contribuem para a
                          receita total e os estados onde o custo médio de frete é mais alto. """)
             st.markdown(""":orange[***Ideal para decisões estratégicas, como:***] Onde concentrar esforços de marketing ou expansão de vendedores.
                         Quais estados podem ter uma margem de lucro menor devido ao frete alto, mesmo que tenham boa receita.
@@ -208,7 +221,7 @@ if processar:
                     onde ocorreram as maiores vendas ou onde os fretes foram exorbitantemente caros. Isso é crucial para investigar casos extremos.*""")            
 
     if visualizacao=="Compras por Concentração":                
-        col1, col2 = st.columns([0.6,0.4], gap="medium")
+        col1, col2 = st.columns([0.62,0.38], gap="medium")
         with col1:
             fig = plot_scatter_map(dados_geograficos, center={"lat": -14.2350, "lon": -51.9253})
             st.plotly_chart(fig, use_container_width=True)            
@@ -223,10 +236,10 @@ if processar:
             
             st.markdown(""":orange[***Descrição:***] *A maioria das compras estão concentradas no Sul e Sudeste, indicando forte poder aquisitivo.\
                     \n:orange[Ação:] Otimizar centros de distribuição para reduzir tempos de entrega e custos operacionais otimizando os lucros e a eficiência operacional nessas localidades*""")
-            st.markdown(f""":orange[Compra Expressiva:] *A maior compra realizada no período foi de <span style='font-size:20px'> {(maior_compra["valor"].values[0]):,.2f} R$$</span>
-                        com a seguinte localização: latitude <span style='font-size:20px'>{maior_compra["latitude"].values[0]}</span>
-                         e longitude <span style='font-size: 20px'>{maior_compra["longitude"].values[0]}.</span>
-                        O frete pago pelo cliente foi de* <span style='font-size:20px'> {maior_compra["frete"].values[0]:,.2f}R$.</span>""", unsafe_allow_html=True)
+            st.markdown(f""":orange[Compra Expressiva:] *A maior compra realizada no período foi de <span style='font-size:22px; font-weight:bold'> {(maior_compra["valor"].values[0]):,.2f} R$$</span>
+                        com a seguinte localização: latitude <span style='font-size:22px; font-weight:bold'>{maior_compra["latitude"].values[0]}</span>
+                         e longitude <span style='font-size: 22px; font-weight:bold'>{maior_compra["longitude"].values[0]}.</span>\
+                        \nO frete pago pelo cliente foi de* <span style='font-size:22px; font-weight:bold'> {maior_compra["frete"].values[0]:,.2f}R$.</span>""", unsafe_allow_html=True)
             
             st.markdown(""":orange[Ação:] *Utilizar essas informações para implementar segmentação geográfica personalizada, 
                 otimizando campanhas e ofertas baseadas nos padrões de consumo da região. 
@@ -236,7 +249,7 @@ if processar:
             st.markdown("")
             st.markdown("")
             st.markdown("")
-
+            
             st.subheader("Análise Geoespacial: Maiores Fretes", divider="orange", help="De forma análoga ao gráfico ao lado, cada bolha representa uma venda.\
                          \nBolhas maiores e com cores diferentes representam os fretes mais caros.")
             st.markdown(""":orange[***Descrição:***] *Altos custos logísticos identificados em regiões mais afastadas da base de clientes.
@@ -244,10 +257,10 @@ if processar:
             st.markdown(""":orange[Ação:] *Explorar subsídios ou parcerias logísticas para reduzir custos e melhorar experiência do cliente.
                         Renegociar contratos com transportadoras e otimizar rotas para reduzir custos operacionais e mitigar impactos do frete.*""")
             
-            st.markdown(f""":orange[***Frete Expressivo***] *O maior frete pago no período foi de <span style='font-size: 20px'> {(maior_frete["frete"].values[0]):,.2f} R$$
-                </span>para uma venda no valor de <span style='font-size: 20px'> {maior_frete["valor"].values[0]:,.2f}R$</span>
-            com a seguinte localização: latitude <span style='font-size: 20px'>{maior_compra["latitude"].values[0]}</span> e longitude*
-             <span style='font-size: 20px'>{maior_compra["longitude"].values[0]}.</span>""", unsafe_allow_html=True)
+            st.markdown(f""":orange[***Frete Expressivo***] *O maior frete pago no período foi de <span style='font-size: 22px; font-weight:bold'> {(maior_frete["frete"].values[0]):,.2f} R$$
+                </span>para uma venda no valor de <span style='font-size: 22px; font-weight:bold'> {maior_frete["valor"].values[0]:,.2f}R$</span>
+            com a seguinte localização: latitude <span style='font-size: 22px; font-weight:bold'>{maior_compra["latitude"].values[0]}</span> e longitude*
+             <span style='font-size: 22px; font-weight:bold'>{maior_compra["longitude"].values[0]}.</span>""", unsafe_allow_html=True)
             st.markdown(""":orange[Ação:] *Criar ofertas segmentadas e programas de fidelidade para aumentar as vendas na região, 
                         possibilitando parcerias logísticas estratégicas, e consequentemente, a redução de custos de frete com o aumento do volume de entregas.*""")
             

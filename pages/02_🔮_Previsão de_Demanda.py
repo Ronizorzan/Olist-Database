@@ -78,7 +78,7 @@ if processar:
         fig2 = plot_categories(df_previsoes_finais, 'quantidade_itens_vendidos')
         fig2.update_layout(yaxis_title="Demanda Prevista")        
         progresso.progress(100, "Previsões Geradas com Sucesso")
-        st.header(f"Demanda Prevista (próximos {meses_prever} meses) ", divider="orange")
+        st.header(f"Demanda Prevista - {meses_prever} meses) ", divider="orange")
         st.plotly_chart(fig2, use_container_width=True)        
         st.markdown("<hr style='border:1px solid #0070f3'>", unsafe_allow_html=True)
 
