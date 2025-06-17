@@ -7,24 +7,25 @@ st.set_page_config("Análises Principais", layout="wide")
 
 
 
-#COnfiguração da barra lateral
+# Consultas no banco de dados
 try:
     dados_completos = carregador_dados(consulta_sql) # Carregamento do DataFrame para as análises principais         
     dados_geograficos = carregador_dados(consulta_sql2) # Carregamento do DataFrame para as análises geográficas
     dados_receitas = carregador_dados(consulta_sql3) # Carregamento do DataFrame para as análises de receitas e fretes 
     
-    # Os dados não serão salvos recorrentemente para tornar a aplicação mais fluida
-    #dados_completos.to_csv("dados_completos.csv")
-    #dados_geograficos.to_csv("dados_geograficos.csv")
-    #dados_receitas.to_csv("dados_receitas.csv")
+    # Os dados não serão salvos de forma recorrente para tornar a aplicação mais fluida
+    #dados_completos.to_csv("dados_completos.csv", index=False)
+    #dados_geograficos.to_csv("dados_geograficos.csv", index=False)
+    #dados_receitas.to_csv("dados_receitas.csv", index=False)
 
-# Carregamento dos DataFrame com os últimos dados obtidos caso ocorra algum erro no banco de dados
+# Carregamento dos DataFrames com os últimos dados obtidos caso ocorra algum erro no banco de dados
 except Exception as e:
-    st.warning(f"Falha na conecção com o banco de dados. Erro encontrado: {e}. Utilizando dados alternativos.")
+    st.warning(f"Falha na conecção com o banco de dados. Erro encontrado: {e}. Utilizando dados salvos.")
     dados_completos = pd.read_csv(consulta_sql) 
     dados_geograficos = pd.read_csv(consulta_sql2) 
     dados_receitas = pd.read_csv(consulta_sql3) 
 
+#Configuração da barra lateral
 with st.sidebar:    
     st.markdown(":orange[**Configuração das Análises**]")    
     
@@ -36,7 +37,7 @@ with st.sidebar:
     with st.expander(":orange[Configurações adicionais]"):        
         datas = st.date_input("Insira 1 ou 2 datas para filtrar nos gráficos", [], help="Escolha uma única data se quiser inserir apenas a data inicial,\
                                 \n ou duas se quiser filtrar data inicial e final, respectivamente.")
-        meta = st.number_input("Estipular meta", value=None, max_value=len(dados_completos)* 0.4e+3) 
+        meta = st.number_input("Estabelecer meta", value=None, max_value=len(dados_completos)* 0.4e+3) 
             
     with st.expander(":orange[Conexão com banco de dados - Não alterar\
                         \n(em desenvolvimento)]", expanded=False):
@@ -51,7 +52,7 @@ with st.sidebar:
     st.markdown(markdown, unsafe_allow_html=True) # Informações do desenvolvedor
 
 if processar:
-    dados_filtrados, clv, total_vendas, vendas_por_categoria, vendas_mensais, crescimento_perc, soma_cumulativa = gerador_calculos(dados_completos, coluna_data, coluna_id, coluna_categoria, coluna_valor, datas)
+    dados_filtrados, clv, total_vendas, vendas_por_categoria, vendas_mensais, crescimento_perc = gerador_calculos(dados_completos, coluna_data, coluna_id, coluna_categoria, coluna_valor, datas)
     
     # Filtragem de datas para as outras consultas no banco de dados
     if len(datas)>0:
@@ -123,16 +124,15 @@ if processar:
             st.markdown("<hr style='border:1px solid #0070f3'>", unsafe_allow_html=True)
 
             st.markdown(f":orange[CLV:] *Valor médio que um cliente gasta durante todo o período como cliente da empresa:\
-                         <span style='color: orange; font-size: 20px'>R$ {clv.iloc[0]:,.2f}</span>\
-                        \n:orange[Ação] A métrica acima deve ser acompanhada de perto e maximizada utilizando estratégias como\
+                         <span style='color: orange; font-size: 20px; font-weight:bold'> {clv.iloc[0]:,.2f} R$</span>\
+                        \nA métrica acima deve ser acompanhada e maximizada utilizando estratégias como\
                         \ncross-selling, up-selling e otimização do ticket médio.*", unsafe_allow_html=True) # Exibição do CLV
             
             st.markdown(f":orange[***Ação:***] *O mês de ***{mapeamento_meses[melhor_mes.index.month[0]]}*** de ***{melhor_mes.index.year[0]}***\
                         registrou o maior faturamento, totalizando **R${melhor_mes[coluna_valor].iloc[0]:,.2f}**.\
                             \nEstratégias sazonais podem ser otimizadas para esse período.*")
             st.markdown(f"*Em contraste, ***{mapeamento_meses[pior_mes.index.month[0]]}*** de ***{pior_mes.index.year[0]}***\
-                         teve o menor desempenho, com R$ ***{pior_mes[coluna_valor].iloc[0]:,.2f}***. Avaliar causas e ajustar ações para ambos pode melhorar significativamente os resultados.*")            
-                
+                         teve o menor desempenho, com R$ ***{pior_mes[coluna_valor].iloc[0]:,.2f}***. Avaliar causas e ajustar ações pode melhorar significativamente os resultados.*")
                  
             if df_nulos.isnull().values.any(): # Exibição de valores nulos na aplicação para maior transparência (se encontrados)
                 st.warning(f"Foram detectados {nulos} valores nulos no conjunto de dados. Esses valores serão desconsiderados nas análises. ")
@@ -140,7 +140,7 @@ if processar:
                  
 
     if visualizacao =="Metas e Variações":
-        grafico_crescimento, grafico_soma_cumulativa, melhor_porc, pior_porc, distancia_meta = plot_tendencia(crescimento_perc, soma_cumulativa, coluna_valor, meta)
+        grafico_crescimento, grafico_soma_cumulativa, melhor_porc, pior_porc, distancia_meta = plot_tendencia(crescimento_perc, vendas_mensais, coluna_valor, meta)
         col1, col2 = st.columns([0.45,0.55])
         with col1:
             st.header("Monitoramento sazonal", divider='orange')
@@ -160,10 +160,10 @@ if processar:
             st.markdown("<hr style='border:1px solid #0070f3'>", unsafe_allow_html=True)
             if distancia_meta <0:
                 st.markdown(f""":orange[***Expectativa de desempenho alcançada:***] *O gráfico de metas mostra que a empresa ultrapassou a meta de faturamento esperada,
-                        atingindo um superávit de R$ {np.abs(distancia_meta):,.2f}. Isso demonstra um desempenho sólido e abre espaço para novas metas ainda mais ambiciosas.*""")
+                        atingindo um superávit de ***R$ {np.abs(distancia_meta):,.2f}.*** Isso demonstra um desempenho sólido e abre espaço para novas metas ainda mais ambiciosas.*""")
             else:
-                st.markdown(f""":orange[***Expectativa de desempenho não alcançada:***] *O gráfico indica que o objetivo ainda não foi alcançado. Valor faltante: R$ {distancia_meta:,.2f}
-                            Se o valor está muito longe do esperado ajustes podem ser necessários para manter o crescimento sustentável e garantir o objetivo.*""")
+                st.markdown(f""":orange[***Expectativa de desempenho não alcançada:***] *O gráfico indica que o objetivo ainda não foi alcançado. Valor faltante: ***R$ {distancia_meta:,.2f}***
+                            Se o valor está muito longe do esperado ajustes podem ser necessários para manter o crescimento sustentável e garantir o alcance do objetivo.*""")
                 
             st.markdown(":orange[***Informação:***] *A meta de faturamento pode ser ajustada em configurações adicionais na barra lateral ao lado.*")
                                 
@@ -216,21 +216,28 @@ if processar:
                 Direcionar campanhas de marketing de baixo custo para essas regiões subexploradas para tentar alavancar o volume de vendas, dado que a logística já é eficiente.
                 Considerar expandir a oferta de produtos nessas áreas, ajustando preços de produtos com base na demanda regional e nos custos de frete.*""")  
 
-            st.markdown(":orange[***Concentração de Compras:***] *A análise abaixo opera em uma granularidade muito mais fina: no nível de transação individual (ou localização específica), representada por latitude e longitude.*")
-            st.markdown(""":orange[***Valor e Insights:***] *Identificação de Outliers e Pontos de Destaque: Permite identificar pontos específicos (endereços de clientes)
+            st.markdown(":orange[***Concentração de Compras (Análise abaixo):***] *A análise de \"Compras por Concentração\" opera em uma granularidade muito mais fina:\
+                        no nível de transação individual (ou localização específica), representada por latitude e longitude.*")
+            st.markdown(""":orange[***Valor e Insights:***] *Identificação de discrepâncias e Pontos de Destaque: Permite identificar pontos específicos (endereços de clientes)
                     onde ocorreram as maiores vendas ou onde os fretes foram exorbitantemente caros. Isso é crucial para investigar casos extremos.*""")            
 
     if visualizacao=="Compras por Concentração":                
-        col1, col2 = st.columns([0.62,0.38], gap="medium")
-        with col1:
+        col1, col2 = st.columns([0.6,0.4], gap="medium")
+        with col1:            
             fig = plot_scatter_map(dados_geograficos, center={"lat": -14.2350, "lon": -51.9253})
             st.plotly_chart(fig, use_container_width=True)            
-            fig2 = plot_scatter_map(dados_geograficos, value_col="frete", title="Otimização de Logística: Quais clientes pagam os maiores fretes?",
+            fig2 = plot_scatter_map(dados_geograficos, value_col="frete", title="Otimização de Logística: Quais clientes pagam os maiores fretes.",
                                     center={"lat": -14.2350, "lon": -51.9253}, label_name="Valor do Frete")
             st.plotly_chart(fig2, use_container_width=True)            
         with col2:
-            maior_compra = dados_geograficos.loc[dados_geograficos["valor"]== dados_geograficos["valor"].max()] # Localização da Maior compra
-            maior_frete = dados_geograficos.loc[dados_geograficos["frete"]== dados_geograficos["frete"].max()] # Localização do Maior frete
+            dados_geograficos_copy = dados_geograficos.copy()
+            if "order_purchase_timestamp" in dados_geograficos_copy.columns:
+                dados_geograficos_copy = dados_geograficos_copy.set_index("order_purchase_timestamp")            
+            maior_compra = dados_geograficos_copy.loc[dados_geograficos_copy["valor"]== dados_geograficos_copy["valor"].max()] # Localização da Maior compra            
+            maior_compra.index = maior_compra.index.date #Extração da data
+
+            maior_frete = dados_geograficos_copy.loc[dados_geograficos_copy["frete"]== dados_geograficos_copy["frete"].max()] # Localização do Maior frete            
+            maior_frete.index = maior_frete.index.date # Extração da data
             st.subheader("Análise Geoespacial: Maiores Compras ", divider="orange", help="As bolhas representam vendas individuais.\
                          \nBolhas maiores e com cores diferentes representam as maiores vendas.")
             
@@ -239,28 +246,31 @@ if processar:
             st.markdown(f""":orange[Compra Expressiva:] *A maior compra realizada no período foi de <span style='font-size:22px; font-weight:bold'> {(maior_compra["valor"].values[0]):,.2f} R$$</span>
                         com a seguinte localização: latitude <span style='font-size:22px; font-weight:bold'>{maior_compra["latitude"].values[0]}</span>
                          e longitude <span style='font-size: 22px; font-weight:bold'>{maior_compra["longitude"].values[0]}.</span>\
-                        \nO frete pago pelo cliente foi de* <span style='font-size:22px; font-weight:bold'> {maior_compra["frete"].values[0]:,.2f}R$.</span>""", unsafe_allow_html=True)
+                         \nA data da compra foi <span style='font-size:22px; font-weight:bold'>{maior_compra.index[0].strftime("%d-%m-%Y")}</span>,
+                        e o frete pago pelo cliente foi de* <span style='font-size:22px; font-weight:bold'> {maior_compra["frete"].values[0]:,.2f}R$.</span>""", unsafe_allow_html=True)            
             
             st.markdown(""":orange[Ação:] *Utilizar essas informações para implementar segmentação geográfica personalizada, 
                 otimizando campanhas e ofertas baseadas nos padrões de consumo da região. 
-                Otimizar centros de distribuição e realocar produtos mais vendidos em diferentes regiões.*""", unsafe_allow_html=True)
+                Otimizar centros de distribuição e realocar produtos mais vendidos em regiões próximas.
+                Buscar parceria com vendedores próximos para diminuir tempo de entrega e custos de frete.*""", unsafe_allow_html=True)
 
-            st.markdown("")
-            st.markdown("")
-            st.markdown("")
-            st.markdown("")
-            
-            st.subheader("Análise Geoespacial: Maiores Fretes", divider="orange", help="De forma análoga ao gráfico ao lado, cada bolha representa uma venda.\
+            st.markdown("")            
+
+
+            st.subheader("Análise Geoespacial: Maiores Fretes", divider="orange", help="Semelhante ao primeiro gráfico , cada bolha representa uma venda.\
                          \nBolhas maiores e com cores diferentes representam os fretes mais caros.")
             st.markdown(""":orange[***Descrição:***] *Altos custos logísticos identificados em regiões mais afastadas da base de clientes.
                             Esses custos podem impactar negativamente a conversão de vendas.*""")
             st.markdown(""":orange[Ação:] *Explorar subsídios ou parcerias logísticas para reduzir custos e melhorar experiência do cliente.
-                        Renegociar contratos com transportadoras e otimizar rotas para reduzir custos operacionais e mitigar impactos do frete.*""")
+                        Renegociar contratos com transportadoras e otimizar rotas para reduzir custos operacionais e mitigar impactos do frete.
+                        Buscar parceria com vendedores e transportadoras da região para atender clientes de alto potencial, 
+                        principalmente com produtos com altos custos de transporte quando enviado de centros de distribuição mais afastados.*""")
             
             st.markdown(f""":orange[***Frete Expressivo***] *O maior frete pago no período foi de <span style='font-size: 22px; font-weight:bold'> {(maior_frete["frete"].values[0]):,.2f} R$$
                 </span>para uma venda no valor de <span style='font-size: 22px; font-weight:bold'> {maior_frete["valor"].values[0]:,.2f}R$</span>
-            com a seguinte localização: latitude <span style='font-size: 22px; font-weight:bold'>{maior_compra["latitude"].values[0]}</span> e longitude*
-             <span style='font-size: 22px; font-weight:bold'>{maior_compra["longitude"].values[0]}.</span>""", unsafe_allow_html=True)
+            com a seguinte localização: latitude <span style='font-size: 22px; font-weight:bold'>{maior_frete["latitude"].values[0]}</span> e longitude*
+             <span style='font-size: 22px; font-weight:bold'>{maior_frete["longitude"].values[0]}.</span>
+             A data da compra foi <span style='font-size:22px; font-weight:bold'>{maior_frete.index[0].strftime("%d-%m-%Y")}</span>""", unsafe_allow_html=True)
             st.markdown(""":orange[Ação:] *Criar ofertas segmentadas e programas de fidelidade para aumentar as vendas na região, 
                         possibilitando parcerias logísticas estratégicas, e consequentemente, a redução de custos de frete com o aumento do volume de entregas.*""")
             

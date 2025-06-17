@@ -115,11 +115,9 @@ def gerador_calculos(data, coluna_data, coluna_id, coluna_categoria, coluna_valo
     total_vendas = data[coluna_valor].sum() # Total em Vendas
     vendas_por_categoria = data.groupby(coluna_categoria)[[coluna_valor]].sum().nlargest(10, coluna_valor)   #Top 10 categorias mais vendidas
     vendas_mensais = data.resample("MS")[[coluna_valor]].sum() 
-    crescimento_perc = vendas_mensais[[coluna_valor]].pct_change() *100  #Crescimento percentual      
-    soma_cumulativa = vendas_mensais[coluna_valor].cumsum() # Soma Cumulativa
-                           
-    
-    return data, clv, total_vendas, vendas_por_categoria, vendas_mensais, crescimento_perc, soma_cumulativa
+    crescimento_perc = vendas_mensais[[coluna_valor]].pct_change() *100  #Crescimento percentual          
+                               
+    return data, clv, total_vendas, vendas_por_categoria, vendas_mensais, crescimento_perc
 
 #Função de Geração dos Cálculos E Gráficos
 @st.cache_resource
@@ -170,13 +168,8 @@ def plot_desempenho_geral(vendas_por_categoria, vendas_mensais, coluna_valor):
 
 
 # Gráficos da página Tendência de Vendas
-def plot_tendencia(crescimento_perc, soma_cumulativa, coluna_valor, meta):
-
-        # Atualiza o valor da meta
-        if meta is not None:
-             pass
-        else:
-             meta = 4e+5 * len(soma_cumulativa) # Valor padrão da meta: (400 mil x meses)
+def plot_tendencia(crescimento_perc, vendas_mensais, coluna_valor, meta):
+        
         
         # Preparação dos dados              
         crescimento_perc = crescimento_perc.sort_index(ascending=False).iloc[:12,:]
@@ -208,12 +201,21 @@ def plot_tendencia(crescimento_perc, soma_cumulativa, coluna_valor, meta):
         grafico_crescimento.add_scatter(x=crescimento_perc.index, y=y_fit, mode='lines', name="Tendência", line=dict(dash="dash", color="#f7fbff")) # Adição da linha de tendência        
         
 
-        # Gráfico de soma cumulativa      
+        # Gráfico de soma cumulativa
+        soma_cumulativa = vendas_mensais[coluna_valor].cumsum() # Soma Cumulativa
+        if len(soma_cumulativa)> 12:
+            soma_cumulativa = soma_cumulativa.sort_values(ascending=False).head(12) # Localização dos 12 últimos meses para maior consistência nas análises
+
+        # Atualiza o valor da meta
+        if meta is not None:
+             pass
+        else:
+             meta = 4e+5 * len(soma_cumulativa) # Valor padrão da meta: (400 mil x meses)
+
         distancia_meta = meta - soma_cumulativa.values.max() # diferença entre a meta e o valor vendido no período
         data_batimento = soma_cumulativa.index[soma_cumulativa.values >= meta] # Pega a data do batimento da meta (primeira ocorrência)
         data_batimento = pd.to_datetime(data_batimento)
-        title_text = f"Valor faltante em relação ao objetivo: {distancia_meta:,.2f} " if distancia_meta >0 else f"Mês de batimento da meta: {mapeamento_meses[data_batimento.month[0]]} "
-        soma_cumulativa = soma_cumulativa.nlargest(12)
+        title_text = f"Valor faltante em relação ao objetivo: {distancia_meta:,.2f} " if distancia_meta >0 else f"Meta estipulada: {meta:,.2f}<br>Mês de batimento da meta: {mapeamento_meses[data_batimento.month[0]]}"
         grafico_soma_cumulativa = px.bar(
             soma_cumulativa, soma_cumulativa.index, soma_cumulativa.values, 
             color=soma_cumulativa.values, color_continuous_scale=['#ff6600', '#0070f3'],
@@ -273,7 +275,8 @@ def plot_smallest(df, coluna1, coluna2, titulo1, titulo2, label1, label2):
     fig1 = px.bar(tops1, x='estado', y=coluna1,
                                     title=titulo1, labels={coluna1: label1},
                                     color=tops1[coluna1], color_continuous_scale=['#ff6600', '#0070f3'])   
-    fig1.update_traces(text=tops1[coluna1].apply(lambda x: f"R$ {x:,.2f} "), textposition="none", hovertemplate="Estado: %{x}<br>Receita Total: %{text}R$")                                 
+    fig1.update_traces(text=tops1[coluna1].apply(lambda x: f"R$ {x:,.2f} "), textposition="none", hovertemplate="Estado: %{x}<br>Receita Total: %{text}R$")
+    fig1.update_layout(xaxis_title="Estado")
     
         
     df[coluna2] = df[coluna2].astype(float)
@@ -282,11 +285,12 @@ def plot_smallest(df, coluna1, coluna2, titulo1, titulo2, label1, label2):
                                     title=titulo2, labels={coluna2: label2},
                                     color=tops2[coluna2], color_continuous_scale=['#ff6600', '#0070f3'])
     fig2.update_traces(text=tops2[coluna2].apply(lambda x: f"R$ {x:,.2f} "), textposition="none", hovertemplate="Estado: %{x}<br>Frete Médio Total: %{text}R$")
-    
+    fig2.update_layout(xaxis_title="Estado")
 
     return fig1, fig2
 
 
+@st.cache_resource
 def plot_scatter_map(
     df,
     lat_col: str   = "latitude",
@@ -297,10 +301,10 @@ def plot_scatter_map(
     hover_col: str = None,
     mapbox_style: str = "carto-positron",
     color_scale = ["#0070f3", "#ff6600"],
-    zoom: float = 3.5,
+    zoom: float = 3.9,
     center: dict = None,
     mapbox_token: str = None,
-    title: str = "Otimização de Logística: Onde estão concentrados os maiores volumes de compras?",
+    title: str = "Onde estão concentradas as maiores compras.",
     label_name: str = "Valor da Compra"
 ):
     """
@@ -316,7 +320,7 @@ def plot_scatter_map(
     - color_scale: lista de cores contínuas.
     - zoom: nível de zoom inicial.
     - center: dict {'lat':…, 'lon':…}. Se None, centraliza pelos dados.
-    - mapbox_token: token Mapbox (se usar estilos privados).
+    - mapbox_token: token Mapbox (para usar estilos privados).
     - title: Título à ser exibido no gráfico
     - label_name: Legenda customizada da 'colorbar'
     
@@ -332,7 +336,7 @@ def plot_scatter_map(
             "lat": df[lat_col].mean(),
             "lon": df[lon_col].mean()
         }
-
+    
     fig = px.scatter_mapbox(
         df, lat=lat_col, lon=lon_col,
         size=value_col, color=value_col,
@@ -416,4 +420,4 @@ def prever_demanda_categoria(df_historico_categoria, demanda, periodos_futuros=1
     forecast = model.predict(future)
 
     # Retornar apenas as colunas relevantes para a previsão
-    return forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']] # Os intervalos de confiança serão usados posteriormente
+    return forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']] # Os intervalos de confiança serão usados nas futuras versões do projeto

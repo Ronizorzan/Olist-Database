@@ -39,9 +39,9 @@ if processar:
         st.plotly_chart(fig, use_container_width=True)
         st.markdown("<hr style='border:1px solid #0070f3'>", unsafe_allow_html=True)
 
-        st.markdown(""":orange[***Descrição:***] *Esta seção apresenta projeções de demanda para as categorias de produtos mais vendidas,
-                    combinando dados históricos com modelos preditivos avançados. O objetivo dessa página é prever a demanda futura,
-                    fornecendo insights acionáveis para otimizar a gestão de estoque, refinar estratégias logísticas e impulsionar o crescimento de vendas.*""")
+        st.markdown(""":orange[***Descrição:***] *Esta seção apresenta projeções de demanda de estoque para as categorias de produtos mais vendidas,
+                    combinando dados históricos com modelos preditivos avançados. O objetivo dessa página é prever a demanda futura, fornecendo insights
+                    acionáveis para otimizar a gestão de estoque, refinar estratégias logísticas e impulsionar o crescimento de vendas.*""")
         st.markdown(""":orange[***Foco em Marketing e Vendas:***] *A identificação de tendências e sazonalidades (como as identificadas acima) permite direcionar investimentos em marketing e
                      promoções de forma mais assertiva, capitalizando nos períodos de maior procura e incentivando vendas em períodos de menor demanda.*""")
 
