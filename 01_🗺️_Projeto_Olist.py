@@ -51,7 +51,7 @@ with st.sidebar:
     st.markdown(markdown, unsafe_allow_html=True) # Informações do desenvolvedor
 
 if processar:
-    dados_filtrados, clv, total_vendas, vendas_por_categoria, vendas_mensais, crescimento_perc, soma_cumulativa = gerador_calculos(dados_completos, coluna_data, coluna_id, coluna_categoria, coluna_valor, datas)
+    dados_filtrados, clv, total_vendas, vendas_por_categoria, vendas_mensais, crescimento_perc = gerador_calculos(dados_completos, coluna_data, coluna_id, coluna_categoria, coluna_valor, datas)
     
     # Filtragem de datas para as outras consultas no banco de dados
     if len(datas)>0:
