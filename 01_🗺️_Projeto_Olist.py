@@ -20,10 +20,10 @@ try:
 
 # Carregamento dos DataFrame com os últimos dados obtidos caso ocorra algum erro no banco de dados
 except Exception as e:
-    st.warning(f"Falha na conecção com o banco de dados. Erro encontrado: {e}. Utilizando dados alternativos.")
-    dados_completos = pd.read_csv(consulta_sql) 
-    dados_geograficos = pd.read_csv(consulta_sql2) 
-    dados_receitas = pd.read_csv(consulta_sql3) 
+    #st.warning(f"Falha na conecção com o banco de dados. Erro encontrado: {e}. Utilizando dados alternativos.")
+    dados_completos = pd.read_csv("dados_completos.csv") 
+    dados_geograficos = pd.read_csv("dados_geograficos.csv") 
+    dados_receitas = pd.read_csv("dados_receitas.csv" )
 
 with st.sidebar:    
     st.markdown(":orange[**Configuração das Análises**]")    
